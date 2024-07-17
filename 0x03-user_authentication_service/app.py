@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+""" Flask class
 """
-Flask app
-"""
+
 from auth import Auth
 from flask import Flask, jsonify, request, abort, redirect
 
@@ -10,21 +10,19 @@ app = Flask(__name__)
 
 
 @app.route('/', methods=['GET'], strict_slashes=False)
-def hello() -> str:
-    """GET route index
-
-    Returns:
-        str: json {'message': 'Bienvenue'}
+def welcome() -> str:
+    """ GET /
+    Return:
+      - welcome
     """
     return jsonify({"message": "Bienvenue"}), 200
 
 
 @app.route('/users', methods=['POST'], strict_slashes=False)
 def user() -> str:
-    """POST route for user register
-
-    Returns:
-        str: messege
+    """ POST /users
+    Return:
+      - message
     """
     email = request.form.get('email')
     password = request.form.get('password')
@@ -32,33 +30,32 @@ def user() -> str:
         AUTH.register_user(email, password)
         return jsonify({"email": f"{email}", "message": "user created"}), 200
     except Exception:
-        return jsonify({"messege": "email already registered"}), 400
+        return jsonify({"message": "email already registered"}), 400
 
 
 @app.route('/sessions', methods=['POST'], strict_slashes=False)
 def login() -> str:
-    """login
-
-    Returns:
-        str: messege
+    """ POST /sessions
+      Return:
+        - message
     """
     email = request.form.get('email')
     password = request.form.get('password')
     valid_login = AUTH.valid_login(email, password)
-    if not valid_login:
+    if valid_login:
+        session_id = AUTH.create_session(email)
+        response = jsonify({"email": f"{email}", "message": "logged in"})
+        response.set_cookie('session_id', session_id)
+        return response
+    else:
         abort(401)
-    session_id = AUTH.create_session(email)
-    response = jsonify({"email": f"{email}", "message": "logged in"})
-    response.set_cookie('session_id', session_id)
-    return response
 
 
 @app.route('/sessions', methods=['DELETE'], strict_slashes=False)
 def logout() -> str:
-    """ logout
-
-    Return:
-       str: message
+    """ DELETE /sessions
+      Return:
+        - message
     """
     session_id = request.cookies.get('session_id')
     user = AUTH.get_user_from_session_id(session_id)
@@ -71,10 +68,9 @@ def logout() -> str:
 
 @app.route('/profile', methods=['GET'], strict_slashes=False)
 def profile() -> str:
-    """profile
-
-    Return:
-       str: message
+    """ GET /profile
+      Return:
+        - message
     """
     session_id = request.cookies.get('session_id')
     user = AUTH.get_user_from_session_id(session_id)
@@ -86,10 +82,9 @@ def profile() -> str:
 
 @app.route('/reset_password', methods=['POST'], strict_slashes=False)
 def get_reset_password_token() -> str:
-    """get_reset_password
-
-    Return:
-       str: message
+    """ POST /reset_password
+      Return:
+        - message
     """
     email = request.form.get('email')
     user = AUTH.create_session(email)
@@ -102,10 +97,9 @@ def get_reset_password_token() -> str:
 
 @app.route('/reset_password', methods=['PUT'], strict_slashes=False)
 def update_password() -> str:
-    """update_password
-
-    Return:
-       str: message
+    """ PUT /reset_password
+      Return:
+        - message
     """
     email = request.form.get('email')
     reset_token = request.form.get('reset_token')
@@ -120,4 +114,3 @@ def update_password() -> str:
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port="5000")
-
